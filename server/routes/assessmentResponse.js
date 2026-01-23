@@ -1,10 +1,11 @@
 import express from 'express';
 import AssessmentResponse from '../models/AssessmentResponse.js';
 import { validateAssessmentResponse } from '../middleware/validation.js';
+import { doubleCsrfProtection } from '../middleware/csrf.js';
 
 const router = express.Router();
 
-// Save individual question response
+// Save individual question response (NO CSRF - Phase 2: Frontend integration pending)
 router.post('/response', async (req, res) => {
   try {
     console.log('📝 Received response:');

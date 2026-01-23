@@ -4,10 +4,11 @@ import database from '../config/database.js';
 import Assessment from '../models/Assessment.js';
 import logger from '../utils/logger.js';
 import { cache, cacheMiddleware } from '../config/redis.js';
+import { doubleCsrfProtection } from '../middleware/csrf.js';
 
 const assessmentRouter = Router();
 
-// Enhanced assessment submission with complete data capture
+// Enhanced assessment submission with complete data capture (NO CSRF - Phase 2: Frontend integration pending)
 assessmentRouter.post('/submit-complete', async (req, res) => {
   try {
     logger.info('Complete assessment submission received', { leadId: req.body.lead_id });

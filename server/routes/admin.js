@@ -4,6 +4,7 @@ import Assessment from '../models/Assessment.js';
 import Lead from '../models/Lead.js';
 import database from '../config/database.js';
 import { validateAdminLogin, validatePasswordChange, validateId, validatePagination } from '../middleware/validation.js';
+import { doubleCsrfProtection } from '../middleware/csrf.js';
 
 const router = express.Router();
 
@@ -54,7 +55,7 @@ const requireSuperAdmin = (req, res, next) => {
 // ADMIN AUTHENTICATION
 // ======================
 
-// Admin login
+// Admin login (NO CSRF - allow login without token)
 router.post('/login', validateAdminLogin, async (req, res) => {
   try {
     const { username, password } = req.body;
@@ -81,8 +82,8 @@ router.post('/login', validateAdminLogin, async (req, res) => {
   }
 });
 
-// Admin logout
-router.post('/logout', authenticateAdmin, async (req, res) => {
+// Admin logout (CSRF protected)
+router.post('/logout', doubleCsrfProtection, authenticateAdmin, async (req, res) => {
   try {
     const token = req.headers.authorization?.replace('Bearer ', '');
     await Admin.logout(token);
@@ -111,7 +112,8 @@ router.get('/verify', authenticateAdmin, (req, res) => {
 });
 
 // Change password
-router.post('/change-password', authenticateAdmin, async (req, res) => {
+// Change password (CSRF protected)
+router.post('/change-password', doubleCsrfProtection, authenticateAdmin, async (req, res) => {
   try {
     const { oldPassword, newPassword } = req.body;
 
@@ -405,8 +407,8 @@ router.get('/questions/:questionId', authenticateAdmin, async (req, res) => {
   }
 });
 
-// Create new question
-router.post('/questions', authenticateAdmin, async (req, res) => {
+// Create new question (CSRF protected)
+router.post('/questions', doubleCsrfProtection, authenticateAdmin, async (req, res) => {
   try {
     const {
       assessment_type,
@@ -461,8 +463,8 @@ router.post('/questions', authenticateAdmin, async (req, res) => {
   }
 });
 
-// Update question
-router.put('/questions/:questionId', authenticateAdmin, async (req, res) => {
+// Update question (CSRF protected)
+router.put('/questions/:questionId', doubleCsrfProtection, authenticateAdmin, async (req, res) => {
   try {
     const { questionId } = req.params;
     const {
@@ -533,8 +535,8 @@ router.put('/questions/:questionId', authenticateAdmin, async (req, res) => {
   }
 });
 
-// Delete question (soft delete by setting is_active = 0)
-router.delete('/questions/:questionId', authenticateAdmin, async (req, res) => {
+// Delete question (soft delete by setting is_active = 0, CSRF protected)
+router.delete('/questions/:questionId', doubleCsrfProtection, authenticateAdmin, async (req, res) => {
   try {
     const { questionId } = req.params;
 
@@ -860,7 +862,7 @@ router.get('/admins', authenticateAdmin, requireSuperAdmin, async (req, res) => 
 });
 
 // Create new admin
-router.post('/admins', authenticateAdmin, requireSuperAdmin, async (req, res) => {
+router.post('/admins', doubleCsrfProtection, authenticateAdmin, requireSuperAdmin, async (req, res) => {
   try {
     const { username, email, password, full_name, role } = req.body;
 
@@ -895,7 +897,7 @@ router.post('/admins', authenticateAdmin, requireSuperAdmin, async (req, res) =>
 });
 
 // Deactivate admin
-router.post('/admins/:adminId/deactivate', authenticateAdmin, requireSuperAdmin, async (req, res) => {
+router.post('/admins/:adminId/deactivate', doubleCsrfProtection, authenticateAdmin, requireSuperAdmin, async (req, res) => {
   try {
     const { adminId } = req.params;
 
@@ -923,7 +925,7 @@ router.post('/admins/:adminId/deactivate', authenticateAdmin, requireSuperAdmin,
 // ======================
 
 // Create new user
-router.post('/users', authenticateAdmin, async (req, res) => {
+router.post('/users', doubleCsrfProtection, authenticateAdmin, async (req, res) => {
   try {
     const { contact_name, email, company_name, industry, job_title, phone_number, password } = req.body;
 
@@ -993,7 +995,7 @@ router.post('/users', authenticateAdmin, async (req, res) => {
 });
 
 // Update user
-router.put('/users/:userId', authenticateAdmin, async (req, res) => {
+router.put('/users/:userId', doubleCsrfProtection, authenticateAdmin, async (req, res) => {
   try {
     const { userId } = req.params;
     const { contact_name, email, company_name, industry, job_title, phone_number, password } = req.body;
@@ -1101,7 +1103,7 @@ router.put('/users/:userId', authenticateAdmin, async (req, res) => {
 });
 
 // Delete user (soft delete)
-router.delete('/users/:userId', authenticateAdmin, async (req, res) => {
+router.delete('/users/:userId', doubleCsrfProtection, authenticateAdmin, async (req, res) => {
   try {
     const { userId } = req.params;
 
@@ -1223,8 +1225,8 @@ router.get('/assessments', authenticateAdmin, async (req, res) => {
   }
 });
 
-// Delete assessment
-router.delete('/assessments/:assessmentId', authenticateAdmin, async (req, res) => {
+// Delete assessment (CSRF protected)
+router.delete('/assessments/:assessmentId', doubleCsrfProtection, authenticateAdmin, async (req, res) => {
   try {
     const { assessmentId } = req.params;
     const id = parseInt(assessmentId);
@@ -1275,7 +1277,7 @@ router.delete('/assessments/:assessmentId', authenticateAdmin, async (req, res) 
 // ======================
 
 // Reorder question
-router.put('/questions/:questionId/reorder', authenticateAdmin, async (req, res) => {
+router.put('/questions/:questionId/reorder', doubleCsrfProtection, authenticateAdmin, async (req, res) => {
   try {
     const { questionId } = req.params;
     const { direction } = req.body; // 'up' or 'down'

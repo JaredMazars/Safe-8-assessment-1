@@ -50,15 +50,36 @@ api.interceptors.request.use(async config => {
   return config;
 });
 
-// Handle token expiration
+// Handle token expiration and CSRF errors
 api.interceptors.response.use(
   response => response,
-  error => {
+  async error => {
+    const originalRequest = error.config;
+    
+    // Handle CSRF token errors
+    if (error.response?.status === 403 && error.response?.data?.code === 'EBADCSRFTOKEN') {
+      console.log('🔄 CSRF token invalid, refreshing...');
+      
+      // Clear the token and retry once
+      if (!originalRequest._retry) {
+        originalRequest._retry = true;
+        csrfToken = null; // Force refresh
+        
+        const newToken = await getCsrfToken();
+        if (newToken) {
+          originalRequest.headers['x-csrf-token'] = newToken;
+          return api(originalRequest);
+        }
+      }
+    }
+    
+    // Handle authentication errors
     if (error.response?.status === 401 && window.location.pathname.includes('/admin/')) {
       localStorage.removeItem('adminToken');
       localStorage.removeItem('adminUser');
       window.location.href = '/admin/login';
     }
+    
     return Promise.reject(error);
   }
 );

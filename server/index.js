@@ -103,7 +103,10 @@ app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
 // ✅ CSRF token endpoint (must be before CSRF protection)
 app.get('/api/csrf-token', (req, res) => {
+  console.log('🔐 CSRF token requested');
   const token = generateToken(req, res);
+  console.log('🔐 CSRF token generated:', token ? 'SUCCESS' : 'FAILED');
+  console.log('🔐 Cookies set:', res.getHeaders()['set-cookie']);
   res.json({ token });
 });
 
@@ -119,21 +122,16 @@ app.use('/api/lead/login', authLimiter);
 app.use('/api/lead', leadRouter);
 app.use('/api/user-engagement', userEngagementRouter);
 
-// ✅ CSRF Protection - Apply to protected endpoints only (exclude login)
-app.use([
-  '/api/assessment-response',
-  '/api/assessments',
-  '/api/questions'
-], doubleCsrfProtection);
-
+// ✅ User assessment routes (NO CSRF - public endpoints for users to submit assessments)
+// These are intentionally left unprotected to allow seamless user experience
 app.use('/api/assessment-response', assessmentResponseRouter);
 app.use('/api/assessments', assessmentRouter);
 app.use('/api/questions', responseRouter);
 
-// Admin routes with selective CSRF (login is excluded)
+// ✅ Admin routes (CSRF enabled, but login route will skip it internally)
 app.use('/api/admin', adminRouter);
 
-console.log('✅ CSRF protection enabled');
+console.log('✅ CSRF protection configured');
 
 // Health check endpoint
 app.get('/health', (req, res) => {

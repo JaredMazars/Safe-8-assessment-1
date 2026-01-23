@@ -5,6 +5,7 @@ import { validateLeadForm, validateLeadLogin } from '../middleware/validation.js
 import { sendWelcomeEmail, sendPasswordResetEmail } from '../services/emailService.js';
 import rateLimit from 'express-rate-limit';
 import logger from '../utils/logger.js';
+import { doubleCsrfProtection } from '../middleware/csrf.js';
 
 // Rate limiter for password reset (3 attempts per hour)
 const resetLimiter = rateLimit({
