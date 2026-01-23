@@ -278,7 +278,6 @@ assessmentRouter.get('/user/:userId/summary', cacheMiddleware(300), async (req, 
 
 // Get specific assessment by ID with caching
 assessmentRouter.get('/:assessmentId', cacheMiddleware(300), async (req, res) => {
-assessmentRouter.get('/:assessmentId', async (req, res) => {
   try {
     const { assessmentId } = req.params;
     console.log(`🔍 Getting assessment details for ID ${assessmentId}`);

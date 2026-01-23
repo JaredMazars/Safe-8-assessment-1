@@ -8,6 +8,16 @@ import compression from 'compression';
 import { generateToken, doubleCsrfProtection, cookieParser } from './middleware/csrf.js';
 import './services/emailService.js'; // Initialize email service
 import { connectRedis } from './config/redis.js';
+import responseRouter from './routes/response.js';
+import leadRouter from './routes/lead.js';
+import assessmentResponseRouter from './routes/assessmentResponse.js';
+import userEngagementRouter from './routes/userEngagement.js';
+import assessmentRouter from './routes/assessments.js';
+import adminRouter from './routes/admin.js';
+import logger from './utils/logger.js';
+import errorHandlerModule from './middleware/errorHandler.js';
+
+const { errorHandler } = errorHandlerModule;
 
 dotenv.config();
 
@@ -101,35 +111,29 @@ app.get('/api/csrf-token', (req, res) => {
 app.use('/api', apiLimiter);
 console.log('✅ Rate limiting enabled');
 
-// ✅ CSRF Protection
-app.use([
-  '/api/assessment-response',
-  '/api/assessments',
-  '/api/admin',
-  '/api/questions'
-], doubleCsrfProtection);
-console.log('✅ CSRF protection enabled');
-
-// Routes
-import responseRouter from './routes/response.js';
-import leadRouter from './routes/lead.js';
-import assessmentResponseRouter from './routes/assessmentResponse.js';
-import userEngagementRouter from './routes/userEngagement.js';
-import assessmentRouter from './routes/assessments.js';
-import adminRouter from './routes/admin.js';
-import logger from './utils/logger.js';
-import errorHandler from './middleware/errorHandler.js';
-
 // ✅ Apply strict rate limiting to authentication endpoints
 app.use('/api/admin/login', authLimiter);
 app.use('/api/lead/login', authLimiter);
 
+// Mount routes
 app.use('/api/lead', leadRouter);
-app.use('/api/assessment-response', assessmentResponseRouter);
 app.use('/api/user-engagement', userEngagementRouter);
+
+// ✅ CSRF Protection - Apply to protected endpoints only (exclude login)
+app.use([
+  '/api/assessment-response',
+  '/api/assessments',
+  '/api/questions'
+], doubleCsrfProtection);
+
+app.use('/api/assessment-response', assessmentResponseRouter);
 app.use('/api/assessments', assessmentRouter);
 app.use('/api/questions', responseRouter);
+
+// Admin routes with selective CSRF (login is excluded)
 app.use('/api/admin', adminRouter);
+
+console.log('✅ CSRF protection enabled');
 
 // Health check endpoint
 app.get('/health', (req, res) => {
