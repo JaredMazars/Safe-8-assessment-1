@@ -2997,7 +2997,9 @@ select.field-input {
 }
 
 .header-text {
-  flex: 1;
+    flex: 1;
+    margin-left: 0;
+    text-align: left;
 }
 
 .dashboard-title {
@@ -5563,5 +5565,16 @@ select.field-input {
   .btn-action {
     width: 100%;
   }
+
+  .header-content {
+  display: flex;
+  justify-content: space-between; /* keeps actions on the right */
+}
+
+.header-text {
+  align-self: flex-start;
+  margin-right: auto; /* pushes it left */
+}
+
 }
 
