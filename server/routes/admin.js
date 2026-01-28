@@ -6,8 +6,39 @@ import database from '../config/database.js';
 import cache from '../config/simpleCache.js';
 import { validateAdminLogin, validatePasswordChange, validateId, validatePagination } from '../middleware/validation.js';
 import { doubleCsrfProtection } from '../middleware/csrf.js';
+import emailService from '../services/emailService.js';
+import crypto from 'crypto';
 
 const router = express.Router();
+
+/**
+ * Generate a secure temporary password
+ * 12 characters: uppercase, lowercase, numbers, and symbols
+ */
+function generateTempPassword() {
+  const length = 12;
+  const uppercase = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+  const lowercase = 'abcdefghijklmnopqrstuvwxyz';
+  const numbers = '0123456789';
+  const symbols = '!@#$%^&*';
+  const allChars = uppercase + lowercase + numbers + symbols;
+  
+  let password = '';
+  
+  // Ensure at least one of each type
+  password += uppercase[crypto.randomInt(0, uppercase.length)];
+  password += lowercase[crypto.randomInt(0, lowercase.length)];
+  password += numbers[crypto.randomInt(0, numbers.length)];
+  password += symbols[crypto.randomInt(0, symbols.length)];
+  
+  // Fill remaining characters randomly
+  for (let i = password.length; i < length; i++) {
+    password += allChars[crypto.randomInt(0, allChars.length)];
+  }
+  
+  // Shuffle the password
+  return password.split('').sort(() => crypto.randomInt(-1, 2)).join('');
+}
 
 // Middleware to verify admin authentication
 const authenticateAdmin = async (req, res, next) => {
@@ -207,6 +238,8 @@ router.get('/users', authenticateAdmin, async (req, res) => {
         l.contact_name as full_name,
         l.email,
         l.company_name,
+        l.company_size,
+        l.country,
         l.industry,
         l.job_title as position,
         l.phone_number,
@@ -218,7 +251,7 @@ router.get('/users', authenticateAdmin, async (req, res) => {
       FROM leads l
       LEFT JOIN assessments a ON l.id = a.lead_id
       ${whereClause}
-      GROUP BY l.id, l.contact_name, l.email, l.company_name, l.industry, l.job_title, l.phone_number, l.created_at, l.last_login_at
+      GROUP BY l.id, l.contact_name, l.email, l.company_name, l.company_size, l.country, l.industry, l.job_title, l.phone_number, l.created_at, l.last_login_at
       ORDER BY l.created_at DESC
       OFFSET ${offset} ROWS FETCH NEXT ${parseInt(limit)} ROWS ONLY;
     `;
@@ -967,49 +1000,129 @@ router.post('/admins/:adminId/deactivate', doubleCsrfProtection, authenticateAdm
 // ======================
 
 // Create new user
-router.post('/users', doubleCsrfProtection, authenticateAdmin, async (req, res) => {
+router.post('/users', authenticateAdmin, async (req, res) => {
+  console.log('📥 POST /api/admin/users - Request received');
+  console.log('Request body:', req.body);
+  
   try {
-    const { contact_name, email, company_name, industry, job_title, phone_number, password } = req.body;
+    const { contact_name, email, company_name, company_size, country, industry, job_title, phone_number, first_name, last_name } = req.body;
 
-    // Validate required fields
-    if (!contact_name || !email || !password) {
+    console.log('Extracted fields:', { contact_name, email, company_name, company_size, country, industry, job_title, phone_number, first_name, last_name });
+
+    // Validate required fields (password no longer required - will be auto-generated)
+    if (!contact_name || !email) {
+      console.log('❌ Validation failed - missing required fields');
       return res.status(400).json({
         success: false,
-        message: 'Contact name, email, and password are required'
+        message: 'Contact name and email are required'
       });
     }
 
+    console.log('✅ Validation passed, checking for existing email...');
+    
     // Check if email already exists
     const existingUser = await Lead.getByEmail(email);
     if (existingUser) {
+      console.log('❌ Email already exists:', email);
       return res.status(409).json({
         success: false,
         message: 'Email already exists'
       });
     }
 
+    console.log('✅ Email is unique, generating temporary password...');
+    
+    // Generate secure temporary password (12 characters: uppercase, lowercase, numbers, symbols)
+    const generateTempPassword = () => {
+      const uppercase = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+      const lowercase = 'abcdefghijklmnopqrstuvwxyz';
+      const numbers = '0123456789';
+      const symbols = '!@#$%^&*';
+      const allChars = uppercase + lowercase + numbers + symbols;
+      
+      let password = '';
+      // Ensure at least one of each type
+      password += uppercase[crypto.randomInt(0, uppercase.length)];
+      password += lowercase[crypto.randomInt(0, lowercase.length)];
+      password += numbers[crypto.randomInt(0, numbers.length)];
+      password += symbols[crypto.randomInt(0, symbols.length)];
+      
+      // Fill remaining 8 characters randomly
+      for (let i = 0; i < 8; i++) {
+        password += allChars[crypto.randomInt(0, allChars.length)];
+      }
+      
+      // Shuffle the password
+      return password.split('').sort(() => Math.random() - 0.5).join('');
+    };
+    
+    const tempPassword = generateTempPassword();
+    console.log('✅ Temporary password generated');
+    
     // Create new user
     const bcrypt = await import('bcrypt');
-    const passwordHash = await bcrypt.hash(password, 12);
+    const passwordHash = await bcrypt.hash(tempPassword, 12);
+
+    console.log('✅ Password hashed, inserting into database...');
 
     const sql = `
-      INSERT INTO leads (contact_name, email, company_name, industry, job_title, phone_number, password_hash, password_created_at, created_at)
-      OUTPUT INSERTED.id, INSERTED.contact_name, INSERTED.email, INSERTED.company_name, INSERTED.industry, INSERTED.job_title, INSERTED.phone_number, INSERTED.created_at
-      VALUES (?, ?, ?, ?, ?, ?, ?, GETDATE(), GETDATE());
+      INSERT INTO leads (contact_name, email, company_name, company_size, country, industry, job_title, phone_number, password_hash, password_must_change, password_created_at, created_at)
+      OUTPUT INSERTED.id, INSERTED.contact_name, INSERTED.email, INSERTED.company_name, INSERTED.company_size, INSERTED.country, INSERTED.industry, INSERTED.job_title, INSERTED.phone_number, INSERTED.created_at
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 1, GETDATE(), GETDATE());
     `;
 
     const result = await database.query(sql, [
       contact_name,
       email,
       company_name || null,
+      company_size || null,
+      country || null,
       industry || null,
       job_title || null,
       phone_number || null,
       passwordHash
     ]);
 
+    console.log('✅ Database insert successful');
+    
     const newUser = result.recordset[0];
 
+    console.log('📧 Sending welcome email with temporary password...');
+    console.log('📧 Email will be sent to:', newUser.email);
+    console.log('📧 Contact name:', newUser.contact_name);
+    console.log('📧 First name:', first_name);
+    
+    // Send email with temporary password
+    try {
+      const emailData = {
+        email: newUser.email,
+        contact_name: newUser.contact_name,
+        first_name: first_name || newUser.contact_name.split(' ')[0],
+        company_name: newUser.company_name
+      };
+      
+      console.log('📧 Email data being sent to service:', JSON.stringify(emailData, null, 2));
+      
+      const emailResult = await emailService.sendAdminCreatedUserEmail(
+        emailData,
+        tempPassword
+      );
+      
+      console.log('📧 Email service result:', emailResult);
+      
+      if (emailResult.success) {
+        console.log('✅ Welcome email sent successfully to:', emailResult.recipient);
+      } else {
+        console.warn('⚠️ Welcome email failed but continuing:', emailResult.error);
+      }
+    } catch (emailError) {
+      console.error('❌ Error sending welcome email:', emailError);
+      console.error('❌ Email error details:', emailError.message);
+      // Continue anyway - user creation succeeded
+    }
+
+    console.log('📝 Logging admin activity...');
+    
     await Admin.logActivity(
       req.admin.id,
       'CREATE',
@@ -1025,7 +1138,8 @@ router.post('/users', doubleCsrfProtection, authenticateAdmin, async (req, res) 
     res.status(201).json({
       success: true,
       message: 'User created successfully',
-      user: newUser
+      user: newUser,
+      tempPassword: tempPassword // Return temp password to display to admin
     });
   } catch (error) {
     console.error('❌ Error creating user:', error);
@@ -1037,10 +1151,10 @@ router.post('/users', doubleCsrfProtection, authenticateAdmin, async (req, res) 
 });
 
 // Update user
-router.put('/users/:userId', doubleCsrfProtection, authenticateAdmin, async (req, res) => {
+router.put('/users/:userId', authenticateAdmin, async (req, res) => {
   try {
     const { userId } = req.params;
-    const { contact_name, email, company_name, industry, job_title, phone_number, password } = req.body;
+    const { contact_name, email, company_name, company_size, country, industry, job_title, phone_number, password } = req.body;
 
     // Check if user exists
     const existingUser = await Lead.getById(userId);
@@ -1078,6 +1192,14 @@ router.put('/users/:userId', doubleCsrfProtection, authenticateAdmin, async (req
       updates.push('company_name = ?');
       params.push(company_name);
     }
+    if (company_size !== undefined) {
+      updates.push('company_size = ?');
+      params.push(company_size);
+    }
+    if (country !== undefined) {
+      updates.push('country = ?');
+      params.push(country);
+    }
     if (industry !== undefined) {
       updates.push('industry = ?');
       params.push(industry);
@@ -1111,7 +1233,7 @@ router.put('/users/:userId', doubleCsrfProtection, authenticateAdmin, async (req
     const sql = `
       UPDATE leads
       SET ${updates.join(', ')}
-      OUTPUT INSERTED.id, INSERTED.contact_name, INSERTED.email, INSERTED.company_name, INSERTED.industry, INSERTED.job_title, INSERTED.phone_number, INSERTED.updated_at
+      OUTPUT INSERTED.id, INSERTED.contact_name, INSERTED.email, INSERTED.company_name, INSERTED.company_size, INSERTED.country, INSERTED.industry, INSERTED.job_title, INSERTED.phone_number, INSERTED.updated_at
       WHERE id = ?;
     `;
 

@@ -151,6 +151,18 @@ const WelcomeScreen = ({
             });
 
             if (userResponse.data.success) {
+              // Check if password must be changed
+              if (userResponse.data.mustChangePassword) {
+                console.log('🔒 Password change required');
+                navigate('/change-password', {
+                  state: {
+                    email: loginEmail,
+                    user: userResponse.data.user
+                  }
+                });
+                return;
+              }
+              
               onLogin(userResponse.data);
               setLoginEmail('');
               setLoginPassword('');

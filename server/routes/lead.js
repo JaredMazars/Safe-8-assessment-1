@@ -297,6 +297,9 @@ leadRouter.post('/login', validateLeadLogin, async (req, res) => {
       req.headers['user-agent']
     );
 
+    // Check if password must be changed
+    const mustChangePassword = user.password_must_change === 1 || user.password_must_change === true;
+
     // Get all assessments for this user
     const assessmentsQuery = `
       SELECT * FROM assessments 
@@ -324,6 +327,7 @@ leadRouter.post('/login', validateLeadLogin, async (req, res) => {
 
     res.json({
       success: true,
+      mustChangePassword: mustChangePassword,
       user: {
         id: user.id,
         email: user.email,
@@ -335,7 +339,9 @@ leadRouter.post('/login', validateLeadLogin, async (req, res) => {
         country: user.country
       },
       assessments: transformedAssessments,
-      message: `Welcome back, ${user.contact_name}!`
+      message: mustChangePassword 
+        ? 'Please change your temporary password to continue' 
+        : `Welcome back, ${user.contact_name}!`
     });
 
   } catch (error) {
@@ -528,6 +534,85 @@ leadRouter.post('/verify-reset-token', async (req, res) => {
     res.status(500).json({
       success: false,
       message: 'Failed to verify token'
+    });
+  }
+});
+
+/**
+ * Change password (forced change after temp password)
+ */
+leadRouter.post('/change-password', async (req, res) => {
+  try {
+    const { email, currentPassword, newPassword } = req.body;
+
+    logger.info('Password change attempt', { email });
+
+    // Validate inputs
+    if (!email || !currentPassword || !newPassword) {
+      return res.status(400).json({
+        success: false,
+        message: 'Email, current password, and new password are required'
+      });
+    }
+
+    // Verify current password
+    const verifyResult = await Lead.verifyPassword(email, currentPassword);
+    
+    if (!verifyResult.success) {
+      return res.status(401).json({
+        success: false,
+        message: 'Current password is incorrect'
+      });
+    }
+
+    const user = verifyResult.lead;
+
+    // Validate new password strength
+    if (newPassword.length < 8) {
+      return res.status(400).json({
+        success: false,
+        message: 'New password must be at least 8 characters long'
+      });
+    }
+
+    // Hash new password
+    const bcrypt = await import('bcrypt');
+    const passwordHash = await bcrypt.hash(newPassword, 12);
+
+    // Update password and clear password_must_change flag
+    const updateSql = `
+      UPDATE leads 
+      SET password_hash = ?, 
+          password_must_change = 0,
+          password_created_at = GETDATE()
+      WHERE id = ?
+    `;
+
+    await database.query(updateSql, [passwordHash, user.id]);
+
+    logger.info('Password changed successfully', { userId: user.id });
+
+    // Log activity
+    await UserActivity.log(
+      user.id,
+      'PASSWORD_CHANGE',
+      'user',
+      user.id,
+      'Password changed successfully',
+      req.ip || req.connection.remoteAddress,
+      req.headers['user-agent']
+    );
+
+    res.json({
+      success: true,
+      message: 'Password changed successfully'
+    });
+
+  } catch (error) {
+    console.error('❌ Error changing password:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to change password'
     });
   }
 });

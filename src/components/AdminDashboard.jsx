@@ -2,6 +2,8 @@ import React, { useState, useEffect } from 'react';
 import ReactDOM from 'react-dom';
 import { useNavigate } from 'react-router-dom';
 import api from '../services/api';
+import { COMPANY_SIZES, COUNTRIES } from '../config/api';
+import { COUNTRY_CODES, validatePhoneNumber, formatPhoneNumber, parsePhoneNumber } from '../config/countryCodes';
 
 const AdminDashboard = () => {
   const navigate = useNavigate();
@@ -1744,6 +1746,7 @@ const AdminDashboard = () => {
         <UserModal
           mode={userModalMode}
           user={selectedUser}
+          industries={industries}
           onClose={() => {
             setShowUserModal(false);
             setSelectedUser(null);
@@ -1809,48 +1812,209 @@ const AdminDashboard = () => {
 };
 
 // ========== User Modal Component ==========
-const UserModal = ({ mode, user, onClose, onSuccess }) => {
+const UserModal = ({ mode, user, onClose, onSuccess, industries }) => {
+  // Split full_name into first_name and last_name if it exists
+  const splitName = (fullName) => {
+    if (!fullName) return { first: '', last: '' };
+    const parts = fullName.trim().split(' ');
+    if (parts.length === 1) return { first: parts[0], last: '' };
+    return { first: parts[0], last: parts.slice(1).join(' ') };
+  };
+  
+  const nameParts = splitName(user?.full_name);
+  
+  // Parse existing phone number if it has country code
+  const parsedPhone = parsePhoneNumber(user?.phone_number || '');
+  
   const [formData, setFormData] = useState({
-    contact_name: user?.full_name || '',
+    first_name: nameParts.first,
+    last_name: nameParts.last,
     email: user?.email || '',
     company_name: user?.company_name || '',
+    company_size: user?.company_size || '',
+    country: user?.country || '',
     industry: user?.industry || '',
     job_title: user?.position || '',
-    phone_number: user?.phone_number || '',
-    password: ''
+    phone_number: parsedPhone.phone
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState('');
+  const [phoneError, setPhoneError] = useState('');
+  const [tempPassword, setTempPassword] = useState('');
+  const [showTempPassword, setShowTempPassword] = useState(false);
 
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
+    
+    // Clear phone error when user types
+    if (e.target.name === 'phone_number') {
+      setPhoneError('');
+    }
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setIsSubmitting(true);
     setError('');
+    setPhoneError('');
+    setShowTempPassword(false);
+
+    // Validate phone number if provided
+    if (formData.phone_number && formData.country) {
+      const countryCode = COUNTRY_CODES[formData.country] || '';
+      const phoneValidation = validatePhoneNumber(formData.phone_number, countryCode);
+      if (!phoneValidation.valid) {
+        setPhoneError(phoneValidation.message);
+        setIsSubmitting(false);
+        return;
+      }
+    }
 
     try {
+      // Get country code for phone number
+      const countryCode = COUNTRY_CODES[formData.country] || '';
+      
+      // Prepare data with contact_name for backend compatibility
+      const submitData = {
+        contact_name: `${formData.first_name} ${formData.last_name}`.trim(),
+        first_name: formData.first_name,
+        last_name: formData.last_name,
+        email: formData.email,
+        company_name: formData.company_name,
+        company_size: formData.company_size,
+        country: formData.country,
+        industry: formData.industry,
+        job_title: formData.job_title,
+        phone_number: formData.phone_number ? formatPhoneNumber(formData.phone_number, countryCode) : ''
+      };
+      
+      console.log('📤 Submitting user data:', submitData);
+      
       if (mode === 'create') {
-        await api.post('/api/admin/users', formData);
-        alert('User created successfully!');
-      } else {
-        const updateData = { ...formData };
-        if (!updateData.password) {
-          delete updateData.password;
+        const response = await api.post('/api/admin/users', submitData);
+        console.log('✅ User created:', response.data);
+        
+        // Store temp password and show it to admin
+        if (response.data.tempPassword) {
+          setTempPassword(response.data.tempPassword);
+          setShowTempPassword(true);
+        } else {
+          alert('User created successfully!');
+          onSuccess();
         }
-        await api.put(`/api/admin/users/${user.id}`, updateData);
+      } else {
+        const response = await api.put(`/api/admin/users/${user.id}`, submitData);
+        console.log('✅ User updated:', response.data);
         alert('User updated successfully!');
+        onSuccess();
       }
-      onSuccess();
     } catch (err) {
-      console.error('Error saving user:', err);
+      console.error('❌ Error saving user:', err);
+      console.error('Error details:', err.response?.data);
       setError(err.response?.data?.message || 'Failed to save user');
     } finally {
       setIsSubmitting(false);
     }
   };
+
+  const handleCloseTempPassword = () => {
+    setShowTempPassword(false);
+    setTempPassword('');
+    onSuccess();
+  };
+
+  const copyToClipboard = () => {
+    navigator.clipboard.writeText(tempPassword);
+    alert('Password copied to clipboard!');
+  };
+
+  // Show temp password display after creation
+  if (showTempPassword && tempPassword) {
+    return (
+      <div className="modal-overlay" onClick={handleCloseTempPassword}>
+        <div className="admin-modal" onClick={(e) => e.stopPropagation()}>
+          <div className="modal-header">
+            <h2>✅ User Created Successfully</h2>
+            <button className="close-button" onClick={handleCloseTempPassword}>×</button>
+          </div>
+
+          <div className="modal-content">
+            <div style={{ 
+              padding: '20px', 
+              backgroundColor: '#f8f9fa', 
+              border: '2px solid #00539F', 
+              borderRadius: '8px',
+              marginBottom: '20px'
+            }}>
+              <h3 style={{ color: '#00539F', marginBottom: '15px' }}>🔑 Temporary Password</h3>
+              <p style={{ marginBottom: '15px', color: '#666' }}>
+                The user has been emailed their login credentials. The temporary password is also shown below:
+              </p>
+              
+              <div style={{ 
+                display: 'flex', 
+                alignItems: 'center', 
+                gap: '10px',
+                backgroundColor: '#fff',
+                padding: '15px',
+                borderRadius: '4px',
+                border: '1px solid #00539F'
+              }}>
+                <code style={{ 
+                  flex: 1,
+                  fontSize: '18px', 
+                  fontWeight: 'bold', 
+                  color: '#00539F',
+                  fontFamily: 'monospace',
+                  letterSpacing: '1px'
+                }}>
+                  {tempPassword}
+                </code>
+                <button 
+                  onClick={copyToClipboard}
+                  className="btn-primary"
+                  style={{ padding: '8px 16px', fontSize: '14px' }}
+                >
+                  Copy
+                </button>
+              </div>
+              
+              <div style={{ 
+                marginTop: '15px', 
+                padding: '12px', 
+                backgroundColor: '#fff3cd', 
+                borderLeft: '4px solid #ffc107',
+                borderRadius: '4px'
+              }}>
+                <p style={{ margin: 0, fontSize: '13px', color: '#856404' }}>
+                  <strong>⚠️ Security Notice:</strong> The user will be required to change this password on first login.
+                </p>
+              </div>
+            </div>
+
+            <div style={{ 
+              padding: '20px', 
+              backgroundColor: '#e8f4f8',
+              border: '1px solid #00539F',
+              borderRadius: '8px',
+              marginBottom: '25px'
+            }}>
+              <h4 style={{ margin: '0 0 12px 0', color: '#00539F', fontSize: '16px' }}>
+                📧 Email Sent To:
+              </h4>
+              <p style={{ margin: 0, color: '#333', fontSize: '15px', fontWeight: '500' }}>
+                {formData.email}
+              </p>
+            </div>
+
+            {/* <button onClick={handleCloseTempPassword} className="btn-primary" style={{ width: '100%', padding: '12px' }}>
+              Close
+            </button> */}
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="modal-overlay" onClick={onClose}>
@@ -1865,11 +2029,23 @@ const UserModal = ({ mode, user, onClose, onSuccess }) => {
           {error && <div className="error-message">{error}</div>}
           <form onSubmit={handleSubmit} className="admin-form">
             <div className="form-group">
-              <label>Full Name *</label>
+              <label>First Name *</label>
               <input
                 type="text"
-                name="contact_name"
-                value={formData.contact_name}
+                name="first_name"
+                value={formData.first_name}
+                onChange={handleChange}
+                required
+                className="form-input"
+              />
+            </div>
+
+            <div className="form-group">
+              <label>Last Name *</label>
+              <input
+                type="text"
+                name="last_name"
+                value={formData.last_name}
                 onChange={handleChange}
                 required
                 className="form-input"
@@ -1900,14 +2076,50 @@ const UserModal = ({ mode, user, onClose, onSuccess }) => {
             </div>
 
             <div className="form-group">
+              <label>Company Size</label>
+              <select
+                name="company_size"
+                value={formData.company_size}
+                onChange={handleChange}
+                className="form-input"
+              >
+                <option value="">Select company size</option>
+                {COMPANY_SIZES.map(size => (
+                  <option key={size} value={size}>{size}</option>
+                ))}
+              </select>
+            </div>
+
+            <div className="form-group">
+              <label>Country</label>
+              <select
+                name="country"
+                value={formData.country}
+                onChange={handleChange}
+                className="form-input"
+              >
+                <option value="">Select country</option>
+                {COUNTRIES.map(country => (
+                  <option key={country} value={country}>{country}</option>
+                ))}
+              </select>
+            </div>
+
+            <div className="form-group">
               <label>Industry</label>
-              <input
-                type="text"
+              <select
                 name="industry"
                 value={formData.industry}
                 onChange={handleChange}
                 className="form-input"
-              />
+              >
+                <option value="">Select industry</option>
+                {industries.map(ind => (
+                  <option key={ind.id || ind.name} value={ind.name || ind}>
+                    {ind.name || ind}
+                  </option>
+                ))}
+              </select>
             </div>
 
             <div className="form-group">
@@ -1923,27 +2135,42 @@ const UserModal = ({ mode, user, onClose, onSuccess }) => {
 
             <div className="form-group">
               <label>Phone Number</label>
-              <input
-                type="tel"
-                name="phone_number"
-                value={formData.phone_number}
-                onChange={handleChange}
-                className="form-input"
-              />
+              <div style={{ display: 'flex', gap: '0.5rem' }}>
+                {COUNTRY_CODES[formData.country] && (
+                  <input
+                    type="text"
+                    value={COUNTRY_CODES[formData.country]}
+                    disabled
+                    style={{ width: '80px', backgroundColor: '#f5f5f5' }}
+                    className="form-input"
+                  />
+                )}
+                <input
+                  type="tel"
+                  name="phone_number"
+                  value={formData.phone_number}
+                  onChange={handleChange}
+                  placeholder={formData.country ? "Enter phone number" : "Select country first"}
+                  className="form-input"
+                  style={{ flex: 1 }}
+                />
+              </div>
+              {phoneError && <p className="error-message" style={{ color: 'red', fontSize: '0.875rem', marginTop: '0.25rem' }}>{phoneError}</p>}
             </div>
 
-            <div className="form-group">
-              <label>Password {mode === 'edit' && '(leave blank to keep current)'}</label>
-              <input
-                type="password"
-                name="password"
-                value={formData.password}
-                onChange={handleChange}
-                required={mode === 'create'}
-                className="form-input"
-                placeholder={mode === 'edit' ? 'Leave blank to keep current password' : ''}
-              />
-            </div>
+            {mode === 'create' && (
+              <div style={{ 
+                padding: '15px', 
+                backgroundColor: '#e8f4f8', 
+                border: '1px solid #00539F', 
+                borderRadius: '4px',
+                marginBottom: '15px'
+              }}>
+                <p style={{ margin: 0, fontSize: '14px', color: '#00539F' }}>
+                  <strong>ℹ️ Password:</strong> A secure temporary password will be automatically generated and emailed to the user. They will be required to change it on first login.
+                </p>
+              </div>
+            )}
 
             <div className="modal-actions">
               <button type="button" onClick={onClose} className="btn-secondary">
@@ -2005,6 +2232,21 @@ const UserAssessmentsModal = ({ user, assessments, loading, onClose, onViewDetai
             </div>
             <div className="info-item">
               <strong>Company:</strong> {user.company_name || 'N/A'}
+            </div>
+            <div className="info-item">
+              <strong>Company Size:</strong> {user.company_size || 'N/A'}
+            </div>
+            <div className="info-item">
+              <strong>Country:</strong> {user.country || 'N/A'}
+            </div>
+            <div className="info-item">
+              <strong>Industry:</strong> {user.industry || 'N/A'}
+            </div>
+            <div className="info-item">
+              <strong>Job Title:</strong> {user.position || 'N/A'}
+            </div>
+            <div className="info-item">
+              <strong>Phone:</strong> {user.phone_number || 'N/A'}
             </div>
             <div className="info-item">
               <strong>Total Assessments:</strong> {assessments.length}

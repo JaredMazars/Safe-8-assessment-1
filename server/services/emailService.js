@@ -696,7 +696,7 @@ export const sendPasswordResetEmail = async (userData) => {
                       This password reset email was sent to ${userData.contact_name} at ${userData.company_name || 'your organization'}.
                     </p>
                     <p style="margin: 0 0 8px 0; font-family: Arial, sans-serif; font-size: 12px; color: #666666; line-height: 1.5;">
-                      Email sent to: <a href="mailto:${userData.email}" style="color: #00539F; text-decoration: none;">${userData.email}</a>
+                      Email esent to: <a href="mailto:${userData.email}" style="color: #00539F; text-decoration: none;">${userData.email}</a>
                     </p>
                     <p style="margin: 15px 0 0 0; font-family: Arial, sans-serif; font-size: 11px; color: #999999; line-height: 1.5;">
                       © ${new Date().getFullYear()} Forvis Mazars. All rights reserved. Forvis Mazars South Africa is registered in South Africa.
@@ -739,8 +739,255 @@ export const sendPasswordResetEmail = async (userData) => {
   }
 };
 
+/**
+ * Send email to admin-created user with temporary password
+ */
+export const sendAdminCreatedUserEmail = async (userData, tempPassword) => {
+  if (!transporter) {
+    console.log('ℹ️  Admin user email skipped (service not configured)');
+    return { success: false };
+  }
+
+  try {
+    const loginUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
+    
+    const mailOptions = {
+      from: {
+        name: 'Forvis Mazars - SAFE-8 Platform',
+        address: process.env.SMTP_USER
+      },
+      to: userData.email,
+      subject: 'Welcome to SAFE-8 Assessment Platform - Your Account Details',
+      html: `
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Welcome to SAFE-8</title>
+  <!--[if mso]>
+  <style type="text/css">
+    body, table, td {font-family: Arial, sans-serif !important;}
+  </style>
+  <![endif]-->
+</head>
+<body style="margin: 0; padding: 0; font-family: Arial, sans-serif; background-color: #F5F5F5; -webkit-text-size-adjust: 100%; -ms-text-size-adjust: 100%;">
+  
+  <!-- Email Container -->
+  <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="background-color: #F5F5F5;">
+    <tr>
+      <td style="padding: 20px 0;">
+        
+        <!-- Main Content Table -->
+        <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="600" style="margin: 0 auto; background-color: #FFFFFF; max-width: 600px;">
+          
+          <!-- Header with Logo -->
+          <tr>
+            <td style="background-color: #FFFFFF; padding: 30px 40px; border-bottom: 4px solid #00539F;">
+              <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%">
+                <tr>
+                  <td>
+                    <!-- Forvis Mazars Logo -->
+                    <img src="data:image/svg+xml;base64,PD94bWwgdmVyc2lvbj0iMS4wIiBlbmNvZGluZz0iVVRGLTgiPz4KPHN2ZyBpZD0iTGF5ZXJfMSIgZGF0YS1uYW1lPSJMYXllciAxIiB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA3MTkuNSA0MDAiPgogIDxkZWZzPgogICAgPHN0eWxlPgogICAgICAuY2xzLTEgewogICAgICAgIGZpbGw6ICMwMDcyY2U7CiAgICAgIH0KCiAgICAgIC5jbHMtMSwgLmNscy0yIHsKICAgICAgICBzdHJva2Utd2lkdGg6IDBweDsKICAgICAgfQoKICAgICAgLmNscy0yIHsKICAgICAgICBmaWxsOiAjMTcxYzhmOwogICAgICB9CiAgICA8L3N0eWxlPgogIDwvZGVmcz4KICA8cGF0aCBjbGFzcz0iY2xzLTEiIGQ9Ik0yNTMuNSwxMTMuNTZjMC05LjQzLDMuMTQtMTIuOTEsMTEuOTEtMTIuOTEsMy45NywwLDcuNDUuNjYsMTAuMjYsMS40OXYtMTYuODhjLTMuMTQtLjgzLTcuMTEtMS45OS0xNS41NS0xLjk5LTE4LjcsMC0yOC4zLDExLjA5LTI4LjMsMjkuMTJ2MTIuOTFoLTE0LjY3bC02LjUsMTcuODdoMjEuMTh2NjUuMDNoMjEuNjhsLjA0LTY1LjAzaDE5Ljl2LTE3Ljg3aC0xOS45NHYtMTEuNzVaIi8+CiAgPHBhdGggY2xhc3M9ImNscy0yIiBkPSJNMjMxLjgzLDI1OC44MWMwLTE4LjQxLTcuMy0yOS44NS0yMy4zOC0yOS44NS0xMy4yNywwLTIzLjM4LDguMjktMjguMTksMjMuMDVoLTEuMTZjLTEuMzMtMTMuMjctOC43OS0yMy4wNS0yMy4wNS0yMy4wNXMtMjQuMDUsOC43OS0yOC41MiwyMy44OGgtMS4xOGMtMi45OS0xMC4wMi04LjQ3LTE4LjU1LTE3Ljc1LTIxLjczLTIuNTEtLjg2LTUuMjktMS4zMy04LjM3LTEuMzNoLTE3LjF2MTguODZoMjEuNjh2NjUuNTVoMjMuMDV2LTQyLjI5Yy4wNi0yLjY5LjM3LTUuMTIuODctNy4zNCwyLjQzLTEwLjgyLDkuNjEtMTYuMiwxNy4wNC0xNi4yczExLjI4LDMuMzIsMTEuMjgsMTYuNzV2NDkuMDloMjMuMDV2LTQzLjI4YzEuNjYtMTYuNzUsMTAuMjgtMjIuNTYsMTguNDEtMjIuNTZzMTAuMTIsNS42NCwxMC4xMiwxNi43NXYyNy40NWMwLDEzLjE4LDguNTIsMjIuMywyMy4yMiwyMy4wNXYtNTYuNzlaIi8+CiAgPHBvbHlnb24gY2xhc3M9ImNscy0yIiBwb2ludHM9IjM2MS4wMSAyOTUuOTYgNDA0LjU2IDI0OC45NiA0MDQuNTYgMjMxLjM3IDQwNC41NiAyMzEuMzcgNDA0LjU2IDIzMC45NiAzMzcuNzkgMjMwLjk2IDMzNy43OSAyNDguMjEgMzgxLjkxIDI0OC4yMSAzMzYuMDcgMjk3LjI5IDMzNi4wNyAzMTQuMDUgNDA1LjU2IDMxNC4wNSA0MDUuNTUgMjk1Ljk2IDM2MS4wMSAyOTUuOTYiLz4KICA8cGF0aCBjbGFzcz0iY2xzLTIiIGQ9Ik00NjguNDcsMjk3LjU5Yy0zLjg3LDExLjAxLTE0LjEzLDE2LjY0LTI2LjEsMTYuNjQtMTUuOTYsMC0yNS4xMS03LjQ5LTI1LjExLTIxLjI5LDAtMTUuNzksMTIuNDctMjIuMjgsMjkuNzYtMjUuNzcsMTQuMy0yLjk5LDIwLjYyLTQuNDksMjEuMjgtNi4zMnYtMS44M2MwLTcuOTgtMy45OS0xMi44LTE0LjEzLTEyLjhzLTE2LjI5LDUuOTgtMTguOTUsMTIuMTRsLTE3LjI5LTkuMzFjNS45OS0xMi4zLDIwLjYyLTE5Ljk1LDM4LjU3LTE5Ljk1LDIzLjQ0LDAsMzQuNDIsMTAuOTcsMzQuNDIsMzEuMjZ2MjYuOTNjMCwxNy4yOSwxLjk5LDI0LjQsNC44MiwyNi43M2gtMjMuMTFjLTItMS44My0zLjY2LTYuOTQtNC4xNi0xNi40MlpNNDY4Ljg3LDI4My40MXYtMTIuODJoMGMtMi4yNSwyLjA4LTQuOTksMi44OS0xMC45Nyw0LjcyLTExLjMxLDMuMTYtMTcuMTIsNi4xLTE3LjEyLDEzLjU5LDAsNi42NSw0LjY2LDEwLjMxLDEwLjE0LDEwLjMxLDguMzEsMCwxNi4yOS02LjE1LDE3Ljk2LTE1Ljc5WiIvPgogIDxwYXRoIGNsYXNzPSJjbHMtMSIgZD0iTTI4MC4wMiwxNjUuNjhjMC0yNC4yOSwxNS4xMi00Mi40Nyw0MS4zNS00Mi40N3M0MC4wNiwxNi40MSw0MC4wNiw0MS42Ny0xNS4xMiw0My4xMS00MS4xOCw0My4xMS00MC4yMi0xNi41Ny00MC4yMi00Mi4zMVpNMzM4LjQyLDE2NS4yYzAtMTYuNDEtNS43OS0yNS40Ni0xNy4zNy0yNS40NnMtMTcuNyw5LjA1LTE3LjcsMjUuMyw1LjYzLDI2LjI2LDE3LjA1LDI2LjI2LDE4LjAyLTkuMzcsMTguMDItMjYuMVoiLz4KICA8cGF0aCBjbGFzcz0iY2xzLTEiIGQ9Ik00NDEuMDMsMTI1LjI4aDIxLjY3bDE4LjUxLDYwLjI2aC45OWwxOC4xOC02MC4zNmgyMi4wM2wtMjkuODQsODIuOS0yMS40MS0uMDktMzAuMTQtODIuNzJaIi8+CiAgPHBhdGggY2xhc3M9ImNscy0xIiBkPSJNNDI5Ljc3LDEyNS40N2MtMTQuMTUsMC0yNS41OSw4Ljk1LTI3Ljc5LDI1Ljg5aC0uNjlzLjg0LTE0LjI3Ljg0LTE0LjI3bC0uMDItMTEuODJoLTI5LjEybC02LjI5LDE3LjE3aDE2LjI1djY1LjU0aDIxLjA0di0zMC40OGMwLTE4LjYxLDIuMjQtMjYuODMsMjAuOC0yNi44M2g2LjA1di0yNS4yMWgtMS4wOFoiLz4KICA8cGF0aCBjbGFzcz0iY2xzLTIiIGQ9Ik01NjQuMSwyMzAuOTFjLTE0LjI5LDAtMjUuODQsOS4wNC0yOC4wNiwyNi4xNGgtLjY5cy44NS0xNC40MS44NS0xNC40MWwtLjAyLTExLjkzaC0yOS40bC02LjM1LDE3LjMzaDE2LjQxdjY2LjE4aDIxLjI1di0zMC43N2MwLTE4Ljc5LDIuMjYtMjcuMDksMjEtMjcuMDloNi4xMXYtMjUuNDVoLTEuMDlaIi8+CiAgPHBvbHlnb24gY2xhc3M9ImNscy0xIiBwb2ludHM9IjUxMy40OSAyMDguMDkgNTM1LjM3IDIwOC4wOSA1NjUuNTUgMTI1LjE5IDU0My42NiAxMjUuMTkgNTEzLjQ5IDIwOC4wOSIvPgogIDxwYXRoIGNsYXNzPSJjbHMtMiIgZD0iTTI5NS45MywyOTcuNTdjLTMuODgsMTEuMDMtMTQuMTUsMTYuNjYtMjYuMTQsMTYuNjYtMTUuOTksMC0yNS4xNC03LjUxLTI1LjE0LTIxLjMzLDAtMTUuODIsMTIuNDktMjIuMzEsMjkuODEtMjUuODEsMTQuMzItMywyMC42NS00LjUsMjEuMzEtNi4zM3YtMS44M2MwLTcuOTktNC0xMi44Mi0xNC4xNS0xMi44MnMtMTYuMzIsNS45OS0xOC45OCwxMi4xNmwtMTcuMzItOS4zMmM1Ljk5LTEyLjMyLDIwLjY1LTE5Ljk4LDM4LjYzLTE5Ljk4LDIzLjQ4LDAsMzQuNDcsMTAuOTksMzQuNDcsMzEuM3YyNi45N2MwLDE3LjMyLDIsMjQuNDQsNC44MywyNi43N2gtMjMuMTRjLTItMS44My0zLjY2LTYuOTYtNC4xNi0xNi40NVpNMjk2LjMzLDI4My4zNnYtMTIuODNoMGMtMi4yNiwyLjA5LTUsMi44OS0xMC45OSw0LjcyLTExLjMyLDMuMTYtMTcuMTUsNi4xMS0xNy4xNSwxMy42MSwwLDYuNjYsNC42NiwxMC4zMiwxMC4xNiwxMC4zMiw4LjMzLDAsMTYuMzItNi4xNiwxNy45OC0xNS44MloiLz4KICA8cGF0aCBjbGFzcz0iY2xzLTIiIGQ9Ik01NjkuOTMsMjk4LjY1bDEzLjE5LTExLjI2YzQuNjcsNy4yNCwxMS40MiwxMS41OCwxOS45NSwxMS41OCw1Ljk1LDAsMTAuNjItMi41NywxMC42Mi03LjQsMC02LjQzLTguMzctOS4xNy0yMC40My0xMy4zNS0xMC4zLTMuNy0yMC4yNy05LjgxLTIwLjI3LTIzLjMzczExLjkxLTI0LjEzLDMyLjAyLTI0LjEzYzE1Ljc3LDAsMjQuNjEsNS43OSwzMC41NywxMy44NGwtMTMuMzUsMTEuNThjLTIuMDktNC4wMi03LjQtOS45Ny0xNi4yNS05Ljk3LTYuNDMsMC0xMC40NiwzLjIyLTEwLjQ2LDcuNCwwLDYuNDQsOC41Myw5LjAxLDE4LjUsMTIuNTUsMTEuNDIsNC4wMiwyMi4zNiw5LjMzLDIyLjM2LDI0LjQ1cy0xMi43MSwyNC4xMy0zMi45OCwyNC4xM2MtMTMuODQsMC0yNy4wMy01LjQ3LTMzLjQ2LTE2LjA5WiIvPgogIDxwYXRoIGNsYXNzPSJjbHMtMSIgZD0iTTU2OS45MywxOTMuMDJsMTMuMTktMTEuMjZjNC42Nyw3LjI0LDExLjQyLDExLjU4LDE5Ljk1LDExLjU4LDUuOTUsMCwxMC42Mi0yLjU3LDEwLjYyLTcuNCwwLTYuNDMtOC4zNy05LjE3LTIwLjQzLTEzLjM1LTEwLjMtMy43LTIwLjI3LTkuODEtMjAuMjctMjMuMzNzMTEuOTEtMjQuMTMsMzIuMDItMjQuMTNjMTUuNzcsMCwyNC42MSw1Ljc5LDMwLjU3LDEzLjg0bC0xMy4zNSwxMS41OGMtMi4wOS00LjAyLTcuNC05Ljk3LTE2LjI1LTkuOTctNi40MywwLTEwLjQ2LDMuMjItMTAuNDYsNy40LDAsNi40NCw4LjUzLDkuMDEsMTguNSwxMi41NSwxMS40Miw0LjAyLDIyLjM2LDkuMzMsMjIuMzYsMjQuNDVzLTEyLjcxLDI0LjEzLTMyLjk4LDI0LjEzYy0xMy44NCwwLTI3LjAzLTUuNDctMzMuNDYtMTYuMDlaIi8+Cjwvc3ZnPg==" alt="Forvis Mazars" style="height: 50px; width: auto; display: block;" />
+                    <div style="font-size: 11px; color: #666666; margin-top: 8px; font-family: Arial, sans-serif; letter-spacing: 0.5px;">
+                      SAFE-8 ASSESSMENT PLATFORM
+                    </div>
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+
+          <!-- Title Bar -->
+          <tr>
+            <td style="background-color: #00539F; padding: 25px 40px;">
+              <h1 style="margin: 0; font-family: Arial, sans-serif; font-size: 24px; font-weight: bold; color: #FFFFFF; line-height: 1.3;">
+                Your SAFE-8 Account Has Been Created
+              </h1>
+              <p style="margin: 8px 0 0 0; font-family: Arial, sans-serif; font-size: 14px; color: #FFFFFF; opacity: 0.95;">
+                Access your account with the credentials below
+              </p>
+            </td>
+          </tr>
+
+          <!-- Main Content -->
+          <tr>
+            <td style="padding: 40px 40px 30px 40px;">
+              
+              <!-- Greeting -->
+              <p style="margin: 0 0 20px 0; font-family: Arial, sans-serif; font-size: 15px; color: #333333; line-height: 1.6;">
+                Dear <strong>${userData.first_name || userData.contact_name}</strong>,
+              </p>
+              
+              <p style="margin: 0 0 25px 0; font-family: Arial, sans-serif; font-size: 14px; color: #333333; line-height: 1.6;">
+                An account has been created for you on the SAFE-8 Assessment Platform. Below are your login credentials and next steps to get started.
+              </p>
+
+              <!-- Login Credentials Box -->
+              <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="background-color: #F8F9FA; border: 2px solid #00539F; border-radius: 8px; margin-bottom: 30px;">
+                <tr>
+                  <td style="padding: 25px;">
+                    <h3 style="margin: 0 0 20px 0; font-family: Arial, sans-serif; font-size: 16px; font-weight: bold; color: #00539F;">
+                      🔑 Your Login Credentials
+                    </h3>
+                    
+                    <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%">
+                      <tr>
+                        <td style="padding: 8px 0; font-family: Arial, sans-serif; font-size: 13px; color: #666666; width: 40%;">
+                          Email:
+                        </td>
+                        <td style="padding: 8px 0; font-family: Arial, sans-serif; font-size: 14px; color: #333333; font-weight: bold;">
+                          ${userData.email}
+                        </td>
+                      </tr>
+                      <tr>
+                        <td style="padding: 8px 0; font-family: Arial, sans-serif; font-size: 13px; color: #666666;">
+                          Temporary Password:
+                        </td>
+                        <td style="padding: 8px 0;">
+                          <div style="background-color: #FFFFFF; border: 1px solid #00539F; padding: 12px 15px; font-family: 'Courier New', monospace; font-size: 16px; color: #00539F; font-weight: bold; letter-spacing: 1px; border-radius: 4px;">
+                            ${tempPassword}
+                          </div>
+                        </td>
+                      </tr>
+                    </table>
+
+                    <div style="margin-top: 20px; padding: 15px; background-color: #FFF3CD; border-left: 4px solid #FFC107; border-radius: 4px;">
+                      <p style="margin: 0; font-family: Arial, sans-serif; font-size: 13px; color: #856404; line-height: 1.5;">
+                        <strong>⚠️ Security Notice:</strong> You will be required to change this temporary password when you first log in. Please choose a strong, unique password for your account.
+                      </p>
+                    </div>
+                  </td>
+                </tr>
+              </table>
+
+              <!-- Next Steps -->
+              <h2 style="margin: 0 0 20px 0; font-family: Arial, sans-serif; font-size: 18px; font-weight: bold; color: #00539F; padding-bottom: 10px; border-bottom: 2px solid #00539F;">
+                Next Steps
+              </h2>
+
+              <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="margin-bottom: 30px;">
+                <tr>
+                  <td style="padding: 15px 0; border-bottom: 1px solid #E5E5E5;">
+                    <div style="font-family: Arial, sans-serif; font-size: 14px; color: #00539F; font-weight: bold; margin-bottom: 5px;">
+                      1. Log In
+                    </div>
+                    <div style="font-family: Arial, sans-serif; font-size: 13px; color: #666666; line-height: 1.5; margin-bottom: 10px;">
+                      Click the button below to access the login page
+                    </div>
+                    <div style="margin-top: 10px;">
+                      <a href="${loginUrl}" style="display: inline-block; background-color: #00539F; color: #FFFFFF; text-decoration: none; padding: 12px 30px; border-radius: 4px; font-family: Arial, sans-serif; font-size: 14px; font-weight: bold;">
+                        Log In to SAFE-8
+                      </a>
+                    </div>
+                  </td>
+                </tr>
+                <tr>
+                  <td style="padding: 15px 0; border-bottom: 1px solid #E5E5E5;">
+                    <div style="font-family: Arial, sans-serif; font-size: 14px; color: #00539F; font-weight: bold; margin-bottom: 5px;">
+                      2. Change Your Password
+                    </div>
+                    <div style="font-family: Arial, sans-serif; font-size: 13px; color: #666666; line-height: 1.5;">
+                      You'll be prompted to create a new password immediately after your first login
+                    </div>
+                  </td>
+                </tr>
+                <tr>
+                  <td style="padding: 15px 0;">
+                    <div style="font-family: Arial, sans-serif; font-size: 14px; color: #00539F; font-weight: bold; margin-bottom: 5px;">
+                      3. Begin Your Assessment
+                    </div>
+                    <div style="font-family: Arial, sans-serif; font-size: 13px; color: #666666; line-height: 1.5;">
+                      Once logged in, you can start your AI transformation assessment
+                    </div>
+                  </td>
+                </tr>
+              </table>
+
+              <!-- Support Information -->
+              <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="background-color: #F5F5F5; margin-top: 30px;">
+                <tr>
+                  <td style="padding: 25px;">
+                    <h3 style="margin: 0 0 12px 0; font-family: Arial, sans-serif; font-size: 16px; font-weight: bold; color: #00539F;">
+                      Need Assistance?
+                    </h3>
+                    <p style="margin: 0; font-family: Arial, sans-serif; font-size: 14px; color: #333333; line-height: 1.6;">
+                      If you have any questions about your account or need help getting started, our support team is here to assist you.
+                    </p>
+                    <p style="margin: 12px 0 0 0; font-family: Arial, sans-serif; font-size: 14px; color: #333333;">
+                      <a href="mailto:ai.advisory@forvismazars.com" style="color: #00539F; text-decoration: none; font-weight: bold;">Contact Support →</a>
+                    </p>
+                  </td>
+                </tr>
+              </table>
+
+              <p style="margin: 30px 0 0 0; font-family: Arial, sans-serif; font-size: 14px; color: #333333; line-height: 1.6;">
+                Best regards,<br>
+                <strong style="color: #00539F;">The SAFE-8 Team</strong><br>
+                <span style="color: #666666; font-size: 13px;">Forvis Mazars</span>
+              </p>
+
+            </td>
+          </tr>
+
+          <!-- Footer -->
+          <tr>
+            <td style="background-color: #F5F5F5; padding: 30px 40px; border-top: 1px solid #E5E5E5;">
+              <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%">
+                <tr>
+                  <td style="padding-bottom: 15px;">
+                    <div style="font-family: Arial, sans-serif; font-size: 18px; font-weight: bold; letter-spacing: -0.5px; line-height: 1.2;">
+                      <span style="color: #0072CE;">forvis</span><br>
+                      <span style="color: #1E2875;">mazars</span>
+                    </div>
+                  </td>
+                </tr>
+                <tr>
+                  <td style="font-family: Arial, sans-serif; font-size: 12px; color: #666666; line-height: 1.6;">
+                    <p style="margin: 0 0 8px 0;">
+                      This email was sent to ${userData.email} regarding your SAFE-8 account.
+                    </p>
+                    <p style="margin: 0; color: #999999; font-size: 11px;">
+                      © ${new Date().getFullYear()} Forvis Mazars. All rights reserved.
+                    </p>
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+
+        </table>
+        
+      </td>
+    </tr>
+  </table>
+
+</body>
+</html>
+      `
+    };
+
+    const info = await transporter.sendMail(mailOptions);
+    console.log('✅ Admin-created user email sent successfully:', info.messageId);
+    
+    return { 
+      success: true, 
+      messageId: info.messageId,
+      recipient: userData.email 
+    };
+    
+  } catch (error) {
+    console.error('❌ Error sending admin-created user email:', error);
+    return { 
+      success: false, 
+      error: error.message 
+    };
+  }
+};
+
 export default {
   sendAssessmentResults,
   sendWelcomeEmail,
-  sendPasswordResetEmail
+  sendPasswordResetEmail,
+  sendAdminCreatedUserEmail
 };

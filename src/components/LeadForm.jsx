@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import api from '../services/api';
 import { COMPANY_SIZES, COUNTRIES } from '../config/api';
+import { COUNTRY_CODES, formatPhoneNumber, validatePhoneNumber, getCountryCode } from '../config/countryCodes';
 
 const LeadForm = ({ assessmentType, industry, onSubmit }) => {
   const navigate = useNavigate();
@@ -23,12 +24,34 @@ const LeadForm = ({ assessmentType, industry, onSubmit }) => {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
+  // Get country code based on selected country
+  const countryCode = getCountryCode(formData.country);
+
   const handleChange = (e) => {
     const { name, value } = e.target;
-    setFormData(prev => ({
-      ...prev,
-      [name]: value
-    }));
+    
+    // If country changes, update phone number with new country code
+    if (name === 'country') {
+      const newCountryCode = getCountryCode(value);
+      // Remove old country code from phone if exists
+      let cleanPhone = formData.phone;
+      if (formData.country) {
+        const oldCode = getCountryCode(formData.country);
+        cleanPhone = formData.phone.replace(oldCode, '').trim();
+      }
+      // Add new country code
+      const newPhone = newCountryCode ? `${newCountryCode} ${cleanPhone}`.trim() : cleanPhone;
+      setFormData(prev => ({
+        ...prev,
+        country: value,
+        phone: newPhone
+      }));
+    } else {
+      setFormData(prev => ({
+        ...prev,
+        [name]: value
+      }));
+    }
     
     // Clear error when user starts typing
     if (errors[name]) {
@@ -83,6 +106,16 @@ const LeadForm = ({ assessmentType, industry, onSubmit }) => {
       newErrors.email = 'Please enter a valid email address';
     }
 
+    // Phone validation with country code
+    const phone = (formData.phone || '').trim();
+    if (phone && formData.country) {
+      const countryCode = COUNTRY_CODES[formData.country] || '';
+      const phoneValidation = validatePhoneNumber(phone, countryCode);
+      if (!phoneValidation.valid) {
+        newErrors.phone = phoneValidation.message;
+      }
+    }
+
     // Password validation
     const password = formData.password || '';
     if (!password.trim()) {
@@ -115,12 +148,16 @@ const LeadForm = ({ assessmentType, industry, onSubmit }) => {
     setIsSubmitting(true);
 
     try {
+      // Get country code and format phone number
+      const countryCode = COUNTRY_CODES[formData.country] || '';
+      const formattedPhone = formData.phone ? formatPhoneNumber(formData.phone, countryCode) : '';
+      
       // Prepare lead data for API
       const leadData = {
         contactName: `${formData.firstName} ${formData.lastName}`,
         jobTitle: formData.jobTitle,
         email: formData.email,
-        phoneNumber: formData.phone,
+        phoneNumber: formattedPhone,
         companyName: formData.company,
         companySize: formData.companySize,
         country: formData.country,
@@ -259,16 +296,28 @@ const LeadForm = ({ assessmentType, industry, onSubmit }) => {
                 <label htmlFor="phone" className="field-label">
                   Phone Number <span className="required">*</span>
                 </label>
-                <input
-                  type="tel"
-                  id="phone"
-                  name="phone"
-                  value={formData.phone}
-                  onChange={handleChange}
-                  className="field-input"
-                  placeholder="Enter your phone number"
-                  required
-                />
+                <div style={{ display: 'flex', gap: '0.5rem' }}>
+                  {COUNTRY_CODES[formData.country] && (
+                    <input
+                      type="text"
+                      value={COUNTRY_CODES[formData.country]}
+                      disabled
+                      style={{ width: '80px', backgroundColor: '#f5f5f5', color: '#666' }}
+                      className="field-input"
+                    />
+                  )}
+                  <input
+                    type="tel"
+                    id="phone"
+                    name="phone"
+                    value={formData.phone}
+                    onChange={handleChange}
+                    className="field-input"
+                    style={{ flex: 1 }}
+                    placeholder={formData.country ? "Enter your phone number" : "Select country first"}
+                    required
+                  />
+                </div>
                 {errors.phone && (
                   <p className="field-error">{errors.phone}</p>
                 )}
