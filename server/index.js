@@ -48,13 +48,14 @@ const apiLimiter = rateLimit({
   legacyHeaders: false,
 });
 
-// ✅ CORS Configuration - Allow localhost:3000, 3001, 5173, 5174 (Vite)
+// ✅ CORS Configuration - Allow localhost and Azure
 const allowedOrigins = [
   'http://localhost:3000',
   'http://localhost:3001',
   'http://localhost:5173',
-  'http://localhost:5174'
-];
+  'http://localhost:5174',
+  process.env.CORS_ORIGIN // Azure frontend URL
+].filter(Boolean);
 
 // Middleware
 app.use(helmet());
@@ -198,6 +199,23 @@ app.use('/api/questions', responseRouter);
 app.use('/api/admin', adminRouter);
 
 console.log('✅ CSRF protection configured');
+
+// Root endpoint
+app.get('/', (req, res) => {
+  res.status(200).json({ 
+    message: 'SAFE-8 Assessment API',
+    status: 'running',
+    version: '1.0.0',
+    endpoints: {
+      health: '/health',
+      csrf: '/api/csrf-token',
+      industries: '/api/industries',
+      assessments: '/api/assessments',
+      admin: '/api/admin',
+      lead: '/api/lead'
+    }
+  });
+});
 
 // Health check endpoint
 app.get('/health', (req, res) => {
