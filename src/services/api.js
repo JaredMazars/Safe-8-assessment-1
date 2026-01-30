@@ -1,7 +1,20 @@
 import axios from 'axios';
 
+// Use environment variable, or same origin in production, or localhost in dev
+const getBaseURL = () => {
+  if (import.meta.env.VITE_API_URL) {
+    return import.meta.env.VITE_API_URL;
+  }
+  // In production (built app), use same origin
+  if (import.meta.env.PROD) {
+    return window.location.origin;
+  }
+  // In development, use localhost:8080
+  return 'http://localhost:8080';
+};
+
 const api = axios.create({
-  baseURL: import.meta.env.VITE_API_URL || 'http://localhost:8080',
+  baseURL: getBaseURL(),
   headers: {
     'Content-Type': 'application/json'
   },
