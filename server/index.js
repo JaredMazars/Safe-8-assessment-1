@@ -243,8 +243,26 @@ app.get('/', (req, res) => {
 });
 
 // Health check endpoint
-app.get('/health', (req, res) => {
-  res.status(200).json({ status: 'OK', message: 'Server is running' });
+app.get('/health', async (req, res) => {
+  const health = {
+    status: 'OK',
+    message: 'Server is running',
+    timestamp: new Date().toISOString(),
+    environment: process.env.NODE_ENV || 'development'
+  };
+
+  // Check database connection
+  try {
+    await database.testConnection();
+    health.database = 'connected';
+  } catch (error) {
+    health.database = 'disconnected';
+    health.databaseError = error.message;
+    health.status = 'DEGRADED';
+  }
+
+  const statusCode = health.status === 'OK' ? 200 : 503;
+  res.status(statusCode).json(health);
 });
 
 // ✅ Centralized error handling middleware
