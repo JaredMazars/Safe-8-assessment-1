@@ -1017,6 +1017,7 @@ const AdminDashboard = () => {
               ) : (
                 <>
                   <div className="admin-table-wrapper">
+                    {/* Desktop Table View */}
                     <table className="admin-table">
                       <thead>
                         <tr>
@@ -1080,6 +1081,60 @@ const AdminDashboard = () => {
                         )}
                       </tbody>
                     </table>
+
+                    {/* Mobile Card View */}
+                    {users.map((user) => (
+                      <div key={`mobile-${user.id}`} className="mobile-table-card">
+                        <div className="mobile-card-row">
+                          <span className="mobile-card-label">ID</span>
+                          <span className="mobile-card-value">{user.id}</span>
+                        </div>
+                        <div className="mobile-card-row">
+                          <span className="mobile-card-label">Name</span>
+                          <span className="mobile-card-value">{user.full_name}</span>
+                        </div>
+                        <div className="mobile-card-row">
+                          <span className="mobile-card-label">Email</span>
+                          <span className="mobile-card-value" style={{ fontSize: '0.85rem', wordBreak: 'break-all' }}>{user.email}</span>
+                        </div>
+                        <div className="mobile-card-row">
+                          <span className="mobile-card-label">Company</span>
+                          <span className="mobile-card-value">{user.company_name || 'N/A'}</span>
+                        </div>
+                        <div className="mobile-card-row">
+                          <span className="mobile-card-label">Industry</span>
+                          <span className="mobile-card-value">{user.industry || 'N/A'}</span>
+                        </div>
+                        <div className="mobile-card-row">
+                          <span className="mobile-card-label">Assessments</span>
+                          <span className="mobile-card-value">{user.total_assessments || 0}</span>
+                        </div>
+                        <div className="mobile-card-row">
+                          <span className="mobile-card-label">Last Login</span>
+                          <span className="mobile-card-value">{formatDate(user.last_login_at)}</span>
+                        </div>
+                        <div className="mobile-card-actions">
+                          <button
+                            onClick={() => handleViewUserAssessments(user)}
+                            className="btn-action btn-view"
+                          >
+                            <i className="fas fa-chart-line"></i> View
+                          </button>
+                          <button
+                            onClick={() => handleEditUser(user)}
+                            className="btn-action btn-edit"
+                          >
+                            <i className="fas fa-edit"></i> Edit
+                          </button>
+                          <button
+                            onClick={() => handleDeleteUser(user.id)}
+                            className="btn-action btn-delete"
+                          >
+                            <i className="fas fa-trash"></i> Delete
+                          </button>
+                        </div>
+                      </div>
+                    ))}
                   </div>
 
                   {usersPagination && usersPagination.total_pages > 1 && (

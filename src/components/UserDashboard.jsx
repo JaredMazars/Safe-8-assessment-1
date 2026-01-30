@@ -344,6 +344,7 @@ function UserDashboard({ user, onLogout }) {
           ) : (
             <>
               <div className="assessment-table-wrapper">
+                {/* Desktop Table View */}
                 <table className="assessment-table">
                   <thead>
                     <tr>
@@ -395,6 +396,55 @@ function UserDashboard({ user, onLogout }) {
                     ))}
                   </tbody>
                 </table>
+
+                {/* Mobile Card View */}
+                {assessmentHistory.map((assessment) => (
+                  <div key={`mobile-${assessment.id}`} className="mobile-table-card">
+                    <div className="mobile-card-row">
+                      <span className="mobile-card-label">Date</span>
+                      <span className="mobile-card-value">
+                        <div>{assessment.formatted_date || formatDate(assessment.completed_at)}</div>
+                        <div style={{ fontSize: '0.8rem', color: 'var(--text-light)' }}>{assessment.time_ago}</div>
+                      </span>
+                    </div>
+                    <div className="mobile-card-row">
+                      <span className="mobile-card-label">Type</span>
+                      <span className="mobile-card-value">
+                        <span className={`type-badge type-${assessment.assessment_type.toLowerCase()}`}>
+                          {assessment.assessment_type}
+                        </span>
+                      </span>
+                    </div>
+                    <div className="mobile-card-row">
+                      <span className="mobile-card-label">Industry</span>
+                      <span className="mobile-card-value">{assessment.industry || 'N/A'}</span>
+                    </div>
+                    <div className="mobile-card-row">
+                      <span className="mobile-card-label">Score</span>
+                      <span className="mobile-card-value">
+                        <span className={`score-badge ${getScoreColor(assessment.overall_score)}`}>
+                          {assessment.overall_score}%
+                        </span>
+                      </span>
+                    </div>
+                    <div className="mobile-card-row">
+                      <span className="mobile-card-label">Status</span>
+                      <span className="mobile-card-value">
+                        <span className="status-badge status-completed">
+                          <i className="fas fa-check-circle"></i> Completed
+                        </span>
+                      </span>
+                    </div>
+                    <div className="mobile-card-actions">
+                      <button 
+                        className="btn-view-details"
+                        onClick={() => loadAssessmentDetail(assessment.id)}
+                      >
+                        <i className="fas fa-eye"></i> View Details
+                      </button>
+                    </div>
+                  </div>
+                ))}
               </div>
 
               {/* Pagination */}
