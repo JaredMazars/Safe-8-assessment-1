@@ -227,6 +227,13 @@ app.get('/', (req, res) => {
       lead: '/api/lead'
     }
   });
+});
+
+// Health check endpoint
+app.get('/health', (req, res) => {
+  res.status(200).json({ status: 'OK', message: 'Server is running' });
+});
+
 // ✅ Centralized error handling middleware
 app.use(errorHandler);
 
@@ -245,13 +252,6 @@ if (process.env.NODE_ENV === 'production') {
     res.status(404).json({ error: 'Route not found' });
   });
 }
-// ✅ Centralized error handling middleware
-app.use(errorHandler);
-
-// 404 handler
-app.use('*', (req, res) => {
-  res.status(404).json({ error: 'Route not found' });
-});
 
 app.listen(PORT, async () => {
   logger.info(`Server started on port ${PORT}`, { 
