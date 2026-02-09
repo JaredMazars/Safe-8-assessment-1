@@ -68,19 +68,44 @@ export const generateAssessmentPDF = (userData, assessmentData, outputPath) => {
       // Header with blue bar
       doc.rect(0, 0, doc.page.width, 4).fill(colors.primaryBlue);
 
-      // Forvis Mazars Logo (text-based)
+      // Forvis Mazars Logo (image)
       yPosition = 30;
-      doc.fontSize(26)
-         .font('Helvetica-Bold')
-         .fillColor(colors.primaryBlue)
-         .text('Forvis ', 50, yPosition, { continued: true })
-         .fillColor(colors.darkGray)
-         .text('Mazars');
+      const logoPath = path.join(__dirname, '..', 'assets', 'forvis-mazars-logo.jpg');
+      
+      try {
+        if (fs.existsSync(logoPath)) {
+          doc.image(logoPath, 50, yPosition, { 
+            width: 180,
+            height: 50,
+            fit: [180, 50]
+          });
+          yPosition += 55;
+        } else {
+          // Fallback to text if logo not found
+          doc.fontSize(26)
+             .font('Helvetica-Bold')
+             .fillColor(colors.primaryBlue)
+             .text('Forvis ', 50, yPosition, { continued: true })
+             .fillColor(colors.darkGray)
+             .text('Mazars');
+          yPosition += 35;
+        }
+      } catch (err) {
+        console.error('Error loading logo:', err);
+        // Fallback to text
+        doc.fontSize(26)
+           .font('Helvetica-Bold')
+           .fillColor(colors.primaryBlue)
+           .text('Forvis ', 50, yPosition, { continued: true })
+           .fillColor(colors.darkGray)
+           .text('Mazars');
+        yPosition += 35;
+      }
 
       doc.fontSize(9)
          .font('Helvetica')
          .fillColor(colors.mediumGray)
-         .text('SAFE-8 ASSESSMENT PLATFORM', 50, yPosition + 32);
+         .text('SAFE-8 ASSESSMENT PLATFORM', 50, yPosition);
 
       // Title section with blue background
       yPosition = 100;
@@ -710,18 +735,44 @@ export const generateAssessmentPDFBuffer = (userData, assessmentData) => {
       
       doc.rect(0, 0, doc.page.width, 4).fill(colors.primaryBlue);
 
+      // Forvis Mazars Logo (image)
       yPosition = 30;
-      doc.fontSize(26)
-         .font('Helvetica-Bold')
-         .fillColor(colors.primaryBlue)
-         .text('Forvis ', 50, yPosition, { continued: true })
-         .fillColor(colors.darkGray)
-         .text('Mazars');
+      const logoPath = path.join(__dirname, '..', 'assets', 'forvis-mazars-logo.jpg');
+      
+      try {
+        if (fs.existsSync(logoPath)) {
+          doc.image(logoPath, 50, yPosition, { 
+            width: 180,
+            height: 50,
+            fit: [180, 50]
+          });
+          yPosition += 55;
+        } else {
+          // Fallback to text if logo not found
+          doc.fontSize(26)
+             .font('Helvetica-Bold')
+             .fillColor(colors.primaryBlue)
+             .text('Forvis ', 50, yPosition, { continued: true })
+             .fillColor(colors.darkGray)
+             .text('Mazars');
+          yPosition += 35;
+        }
+      } catch (err) {
+        console.error('Error loading logo:', err);
+        // Fallback to text
+        doc.fontSize(26)
+           .font('Helvetica-Bold')
+           .fillColor(colors.primaryBlue)
+           .text('Forvis ', 50, yPosition, { continued: true })
+           .fillColor(colors.darkGray)
+           .text('Mazars');
+        yPosition += 35;
+      }
 
       doc.fontSize(9)
          .font('Helvetica')
          .fillColor(colors.mediumGray)
-         .text('SAFE-8 ASSESSMENT PLATFORM', 50, yPosition + 32);
+         .text('SAFE-8 ASSESSMENT PLATFORM', 50, yPosition);
 
       yPosition = 100;
       doc.rect(0, yPosition, doc.page.width, 80).fill(colors.primaryBlue);

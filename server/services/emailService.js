@@ -1,6 +1,7 @@
 import nodemailer from 'nodemailer';
 import dotenv from 'dotenv';
 import path from 'path';
+import fs from 'fs';
 import { fileURLToPath } from 'url';
 import { generateAssessmentPDFBuffer } from './pdfService.js';
 
@@ -9,6 +10,9 @@ const __dirname = path.dirname(__filename);
 
 // Load .env from project root
 dotenv.config({ path: path.resolve(__dirname, '../../.env') });
+
+// Logo path for attachments
+const LOGO_PATH = path.join(__dirname, '..', 'assets', 'forvis-mazars-logo.jpg');
 
 // Create transporter with better error handling
 const createTransporter = () => {
@@ -155,7 +159,7 @@ const generateAssessmentEmailHTML = (userData, assessmentData) => {
                 <tr>
                   <td>
                     <!-- Forvis Mazars Logo -->
-                    <img src="https://i.imgur.com/YXK8L9s.png" alt="Forvis Mazars" style="height: 50px; width: auto; display: block;" />
+                    <img src="\cid:forvismazarslogo" alt="Forvis Mazars" style="height: 50px; width: auto; display: block;" />
                     <div style="font-size: 11px; color: #666666; margin-top: 8px; font-family: Arial, sans-serif; letter-spacing: 0.5px;">
                       SAFE-8 ASSESSMENT PLATFORM
                     </div>
@@ -286,7 +290,7 @@ const generateAssessmentEmailHTML = (userData, assessmentData) => {
               <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%">
                 <tr>
                   <td style="padding-bottom: 15px;">
-                    <img src="https://i.imgur.com/YXK8L9s.png" alt="Forvis Mazars" style="height: 40px; width: auto; display: block;" />
+                    <img src="\cid:forvismazarslogo" alt="Forvis Mazars" style="height: 40px; width: auto; display: block;" />
                   </td>
                 </tr>
                 <tr>
@@ -350,6 +354,11 @@ export const sendAssessmentResults = async (userData, assessmentData) => {
           filename: `SAFE-8_Assessment_Report_${userData.contact_name.replace(/\s+/g, '_')}.pdf`,
           content: pdfBuffer,
           contentType: 'application/pdf'
+        },
+        {
+          filename: 'logo.jpg',
+          path: LOGO_PATH,
+          cid: 'forvismazarslogo'
         }
       ]
     };
@@ -418,7 +427,7 @@ export const sendWelcomeEmail = async (userData) => {
                 <tr>
                   <td>
                     <!-- Forvis Mazars Logo -->
-                    <img src="https://i.imgur.com/YXK8L9s.png" alt="Forvis Mazars" style="height: 50px; width: auto; display: block;" />
+                    <img src="\cid:forvismazarslogo" alt="Forvis Mazars" style="height: 50px; width: auto; display: block;" />
                     <div style="font-size: 11px; color: #666666; margin-top: 8px; font-family: Arial, sans-serif; letter-spacing: 0.5px;">
                       SAFE-8 ASSESSMENT PLATFORM
                     </div>
@@ -523,7 +532,7 @@ export const sendWelcomeEmail = async (userData) => {
               <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%">
                 <tr>
                   <td style="padding-bottom: 15px;">
-                    <img src="https://i.imgur.com/YXK8L9s.png" alt="Forvis Mazars" style="height: 40px; width: auto; display: block;" />
+                    <img src="\cid:forvismazarslogo" alt="Forvis Mazars" style="height: 40px; width: auto; display: block;" />
                   </td>
                 </tr>
                 <tr>
@@ -556,7 +565,14 @@ export const sendWelcomeEmail = async (userData) => {
 
 </body>
 </html>
-      `
+      `,
+      attachments: [
+        {
+          filename: 'logo.jpg',
+          path: LOGO_PATH,
+          cid: 'forvismazarslogo'
+        }
+      ]
     };
 
     await transporter.sendMail(mailOptions);
@@ -617,7 +633,7 @@ export const sendPasswordResetEmail = async (userData) => {
                 <tr>
                   <td>
                     <!-- Forvis Mazars Logo -->
-                    <img src="https://i.imgur.com/YXK8L9s.png" alt="Forvis Mazars" style="height: 50px; width: auto; display: block;" />
+                    <img src="\cid:forvismazarslogo" alt="Forvis Mazars" style="height: 50px; width: auto; display: block;" />
                     <div style="font-size: 11px; color: #666666; margin-top: 8px; font-family: Arial, sans-serif; letter-spacing: 0.5px;">
                       SAFE-8 ASSESSMENT PLATFORM
                     </div>
@@ -710,7 +726,7 @@ export const sendPasswordResetEmail = async (userData) => {
               <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%">
                 <tr>
                   <td style="padding-bottom: 15px;">
-                    <img src="https://i.imgur.com/YXK8L9s.png" alt="Forvis Mazars" style="height: 40px; width: auto; display: block;" />
+                    <img src="\cid:forvismazarslogo" alt="Forvis Mazars" style="height: 40px; width: auto; display: block;" />
                   </td>
                 </tr>
                 <tr>
@@ -743,7 +759,14 @@ export const sendPasswordResetEmail = async (userData) => {
 
 </body>
 </html>
-      `
+      `,
+      attachments: [
+        {
+          filename: 'logo.jpg',
+          path: LOGO_PATH,
+          cid: 'forvismazarslogo'
+        }
+      ]
     };
 
     const info = await transporter.sendMail(mailOptions);
@@ -811,7 +834,7 @@ export const sendAdminCreatedUserEmail = async (userData, tempPassword) => {
                 <tr>
                   <td>
                     <!-- Forvis Mazars Logo -->
-                    <img src="https://i.imgur.com/YXK8L9s.png" alt="Forvis Mazars" style="height: 50px; width: auto; display: block;" />
+                    <img src="\cid:forvismazarslogo" alt="Forvis Mazars" style="height: 50px; width: auto; display: block;" />
                     <div style="font-size: 11px; color: #666666; margin-top: 8px; font-family: Arial, sans-serif; letter-spacing: 0.5px;">
                       SAFE-8 ASSESSMENT PLATFORM
                     </div>
@@ -959,7 +982,7 @@ export const sendAdminCreatedUserEmail = async (userData, tempPassword) => {
               <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%">
                 <tr>
                   <td style="padding-bottom: 15px;">
-                    <img src="https://i.imgur.com/YXK8L9s.png" alt="Forvis Mazars" style="height: 40px; width: auto; display: block;" />
+                    <img src="\cid:forvismazarslogo" alt="Forvis Mazars" style="height: 40px; width: auto; display: block;" />
                   </td>
                 </tr>
                 <tr>
@@ -984,7 +1007,14 @@ export const sendAdminCreatedUserEmail = async (userData, tempPassword) => {
 
 </body>
 </html>
-      `
+      `,
+      attachments: [
+        {
+          filename: 'logo.jpg',
+          path: LOGO_PATH,
+          cid: 'forvismazarslogo'
+        }
+      ]
     };
 
     const info = await transporter.sendMail(mailOptions);
