@@ -21,18 +21,20 @@ const config = {
   database: process.env.DB_NAME,
   port: parseInt(process.env.DB_PORT || '1433'),
   options: {
-    encrypt: true, // Azure SQL requires encryption
-    trustServerCertificate: process.env.NODE_ENV !== 'production',
+    encrypt: process.env.DB_ENCRYPT === 'yes', // Azure SQL requires encryption
+    trustServerCertificate: process.env.DB_TRUST_SERVER_CERTIFICATE === 'yes',
     enableArithAbort: true,
+    connectTimeout: parseInt(process.env.DB_CONNECTION_TIMEOUT || '60') * 1000,
+    requestTimeout: parseInt(process.env.DB_REQUEST_TIMEOUT || '60000'),
   },
   pool: {
-    max: 3, // Reduced from 10 - saves Azure SQL DTU costs
-    min: 0,
+    max: parseInt(process.env.DB_POOL_MAX || '10'),
+    min: parseInt(process.env.DB_POOL_MIN || '0'),
     idleTimeoutMillis: 30000,
-    acquireTimeoutMillis: 10000
+    acquireTimeoutMillis: 60000
   },
-  connectionTimeout: 10000,
-  requestTimeout: 15000 // Timeout queries - reduced DTU usage
+  connectionTimeout: parseInt(process.env.DB_CONNECTION_TIMEOUT || '60') * 1000,
+  requestTimeout: parseInt(process.env.DB_REQUEST_TIMEOUT || '60000')
 };
 
 // ✅ Create singleton connection pool
