@@ -279,6 +279,14 @@ const AssessmentQuestions = ({
       <div className="assessment-wrapper">
         {/* Header */}
         <div className="assessment-header">
+          <button 
+            className="btn-back-home"
+            onClick={() => navigate('/')}
+            title="Return to Home"
+          >
+            <i className="fas fa-arrow-left"></i>
+            Back to Home
+          </button>
           <h1 className="assessment-title">SAFE-8 AI Readiness Assessment</h1>
           <p className="assessment-subtitle">{assessmentType.toUpperCase()} Level • {industry}</p>
         </div>

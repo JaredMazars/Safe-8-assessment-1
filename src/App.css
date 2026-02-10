@@ -1808,6 +1808,36 @@ select.field-input {
   color: var(--white);
   border-radius: 16px;
   box-shadow: 0 8px 32px rgba(0, 48, 135, 0.15);
+  position: relative;
+}
+
+.assessment-header .btn-back-home {
+  position: absolute;
+  top: 1.5rem;
+  left: 1.5rem;
+  background: rgba(255, 255, 255, 0.15);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  color: var(--white);
+  padding: 0.75rem 1.25rem;
+  border-radius: 8px;
+  font-size: 0.95rem;
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  backdrop-filter: blur(10px);
+}
+
+.assessment-header .btn-back-home:hover {
+  background: rgba(255, 255, 255, 0.25);
+  border-color: rgba(255, 255, 255, 0.5);
+  transform: translateX(-3px);
+}
+
+.assessment-header .btn-back-home i {
+  font-size: 1rem;
 }
 
 .assessment-title {
@@ -2179,6 +2209,13 @@ select.field-input {
     padding: 2rem 1.5rem;
   }
 
+  .assessment-header .btn-back-home {
+    top: 1rem;
+    left: 1rem;
+    padding: 0.625rem 1rem;
+    font-size: 0.875rem;
+  }
+
   .assessment-title {
     font-size: 1.75rem;
   }
@@ -2255,6 +2292,13 @@ select.field-input {
 
   .assessment-header {
     padding: 1.5rem 1rem;
+  }
+
+  .assessment-header .btn-back-home {
+    top: 0.75rem;
+    left: 0.75rem;
+    padding: 0.5rem 0.875rem;
+    font-size: 0.813rem;
   }
 
   .assessment-title {
