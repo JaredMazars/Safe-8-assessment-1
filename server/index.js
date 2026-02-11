@@ -263,6 +263,7 @@ app.get('/', (req, res) => {
     status: 'running',
     version: '1.0.0',
     endpoints: {
+      healthProbe: '/health/ping',
       health: '/health',
       csrf: '/api/csrf-token',
       industries: '/api/industries',
@@ -273,13 +274,20 @@ app.get('/', (req, res) => {
   });
 });
 
-// Health check endpoint
+// ✅ Simple health probe for Azure load balancer (fast, no DB check)
+app.get('/health/ping', (req, res) => {
+  res.status(200).send('OK');
+});
+
+// ✅ Detailed health check endpoint (includes DB connection check)
 app.get('/health', async (req, res) => {
   const health = {
     status: 'OK',
     message: 'Server is running',
     timestamp: new Date().toISOString(),
-    environment: process.env.NODE_ENV || 'development'
+    environment: process.env.NODE_ENV || 'development',
+    uptime: process.uptime(),
+    memory: process.memoryUsage()
   };
 
   // Check database connection
@@ -302,7 +310,7 @@ app.use(errorHandler);
 // Serve React app for all non-API routes in production
 if (process.env.NODE_ENV === 'production') {
   app.get('*', (req, res) => {
-    // Don't serve index.html for API routes
+    // Don't serve index.html for API routes or health checks
     if (req.path.startsWith('/api') || req.path.startsWith('/health')) {
       return res.status(404).json({ error: 'Route not found' });
     }
