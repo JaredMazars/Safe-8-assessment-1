@@ -12,16 +12,6 @@ cd "$WORKDIR"
 
 echo "Working directory: $(pwd)"
 
-# Build frontend if not already built
-if [ ! -d "dist" ]; then
-    echo "Building frontend..."
-    npm install
-    npm run build
-    echo "✓ Frontend built"
-else
-    echo "✓ Frontend already built"
-fi
-
 # Check if server directory exists
 if [ ! -d "server" ]; then
     echo "❌ Error: Cannot find server directory"
@@ -31,15 +21,6 @@ if [ ! -d "server" ]; then
 fi
 
 echo "✓ Server directory found"
-
-# Install server dependencies if needed
-if [ ! -d "server/node_modules" ]; then
-    echo "Installing server dependencies..."
-    cd server
-    npm install --production
-    cd ..
-    echo "✓ Server dependencies installed"
-fi
 
 # Check if server/index.js exists
 if [ ! -f "server/index.js" ]; then
