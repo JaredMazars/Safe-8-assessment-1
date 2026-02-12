@@ -5,15 +5,22 @@ echo "=== SAFE-8 Application Startup ==="
 echo "Node version: $(node --version)"
 echo "NPM version: $(npm --version)"
 echo "Current directory: $(pwd)"
-echo "Listing files: $(ls -la)"
 
 # Azure always uses /home/site/wwwroot
 WORKDIR="/home/site/wwwroot"
 cd "$WORKDIR"
 
 echo "Working directory: $(pwd)"
-echo "Checking for server directory..."
-ls -la
+
+# Build frontend if not already built
+if [ ! -d "dist" ]; then
+    echo "Building frontend..."
+    npm install
+    npm run build
+    echo "✓ Frontend built"
+else
+    echo "✓ Frontend already built"
+fi
 
 # Check if server directory exists
 if [ ! -d "server" ]; then
@@ -24,6 +31,15 @@ if [ ! -d "server" ]; then
 fi
 
 echo "✓ Server directory found"
+
+# Install server dependencies if needed
+if [ ! -d "server/node_modules" ]; then
+    echo "Installing server dependencies..."
+    cd server
+    npm install --production
+    cd ..
+    echo "✓ Server dependencies installed"
+fi
 
 # Check if server/index.js exists
 if [ ! -f "server/index.js" ]; then
