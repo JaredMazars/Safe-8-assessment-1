@@ -23,13 +23,14 @@ jobs:
         with:
           node-version: '20.x'
 
-      - name: Install and build frontend
+      - name: Enable Yarn
+        run: corepack enable
+
+      - name: Install and build frontend with Yarn
         run: |
-          rm -rf node_modules package-lock.json
-          npm install
-          npm install
-          npm install @rollup/rollup-linux-x64-gnu --force
-          npm run build
+          rm -rf node_modules package-lock.json yarn.lock
+          yarn install
+          yarn build
 
       - name: Install server dependencies only
         run: |
