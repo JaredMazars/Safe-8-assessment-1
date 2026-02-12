@@ -27,6 +27,7 @@ jobs:
         run: |
           rm -rf node_modules package-lock.json
           npm install
+          npm install
           
       - name: Build frontend
         run: npm run build
