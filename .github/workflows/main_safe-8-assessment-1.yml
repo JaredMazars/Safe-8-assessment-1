@@ -26,8 +26,8 @@ jobs:
       - name: Clean install frontend dependencies and build
         run: |
           rm -rf node_modules package-lock.json
-          npm install --force
-          npm install --force
+          npm install
+          npm install @rollup/rollup-linux-x64-gnu --save-optional
           npm run build --if-present
 
       - name: Install server dependencies
