@@ -26,6 +26,9 @@ jobs:
       - name: Enable Yarn
         run: corepack enable
 
+      - name: Verify Yarn
+        run: yarn --version
+
       - name: Install and build frontend with Yarn
         run: |
           rm -rf node_modules package-lock.json yarn.lock
